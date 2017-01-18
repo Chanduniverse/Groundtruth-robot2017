@@ -1,0 +1,43 @@
+Groundtruth Arduino COMMUNICATION SPECIFICATION DOCUMENT
+
+Communication happens to the Groundtruth Arduino using I2C.
+
+The host application initializes the Groundtruth Arduino at address 64. Registers are used to communicate with the various functions of the Groundtruth sensor.
+
+Register            Address		Data Sent
+-------------------------------------------------------------------------
+Groundtruth data    01			1 byte (1 or 2)
+Main Lights         02			3 bytes (R G B)
+Frontside Lights    03			1 byte (0, 1, or 2 -> Front, Back, Off)
+Gear Lights         04			2 bytes (Left intensity, Right intensity)
+Shooter Lights      05			1 byte (0, 1, 2 -> Off, Aiming, Aim Lock)
+Intake Lights       06			1 byte (0 or 1 -> Intake ON or OFF)
+
+Groundtruth X-Y and IMAGE data
+Address: 01
+Data: 1 byte - 1 or 2
+	1:
+		returns 6 bytes: LEFT_X, LEFT_Y, LEFT_SQUAL, RIGHT_X, RIGHT_Y, RIGHT_SQUAL
+	2:
+		returns 648 bytes, representing the LEFT and RIGHT sensor images in order. The first 324 bytes are the LEFT sensor image, the next 324 bytes are the RIGHT sensor image.
+
+Main Lights
+Address: 02
+Data: 3 bytes, representing the R G and B bytes of the color to be displayed.
+
+Frontside Lights
+Address: 03
+Data: 1 byte - 0 for default frontside, 1 for reverse lights, and 2 for both lights off
+
+Gear Lights
+Address: 04
+Data: 2 bytes, for the intensity level of the LEFT and RIGHT gearholder lights, respectively.
+
+Shooter Lights
+Address: 05
+Data: 1 byte - 0 for shooter OFF, 1 for AIMING, and 2 for AIM LOCK.
+	NOTE: While AIMING, the lights will pulse ON and OFF automatically.
+
+Intake Lights
+Address: 06
+Data: 1 byte - 0 for intake OFF, 1 for intake ON

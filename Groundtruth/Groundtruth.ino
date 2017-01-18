@@ -23,7 +23,7 @@
 #define INTAKE_LIGHTS 4
 
 //Name the ADNS2620, and tell the sketch which pins are used for communication
-ADNS2620_DUAL mouse(0,1,2); //18,19
+ADNS2620_DUAL mouse(0,1,2); //SDA1, SDA2, SCK
 
 //This value will be used to store information from the mouse registers.
 struct ADNS2620_Return value;
@@ -75,6 +75,10 @@ void loop()
         {
           case SHOOTER:
             analogWrite(SHOOTER_LIGHTS, pwm_output);
+            break;
+          case GEAR:
+            analogWrite(GEAR_LIGHTS_L, pwm_output);
+            analogWrite(GEAR_LIGHTS_R, pwm_output);
             break;
           default:
             break;
@@ -165,8 +169,18 @@ void receiveEvent(int num_bytes) {
       }
       break;
     case GEAR: // Gear light illumination
-      analogWrite(GEAR_LIGHTS_L, active_data[0]);
-      analogWrite(GEAR_LIGHTS_R, active_data[1]);
+      if(active_data[0] == 1) // Pulse mode
+        active_pulsing |= 1 << GEAR;
+      else if(active_data[0] == 2) // Intensity mode
+      {
+        analogWrite(GEAR_LIGHTS_L, active_data[1]);
+        analogWrite(GEAR_LIGHTS_R, active_data[2]);
+      }
+      else // Off
+      {
+        analogWrite(GEAR_LIGHTS_L, 0);
+        analogWrite(GEAR_LIGHTS_R, 0);
+      }
       break;
     case SHOOTER: // Shooter status
       if(active_data[0] == 1) // Aiming, pulse lights

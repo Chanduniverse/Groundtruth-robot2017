@@ -9,7 +9,7 @@ Register            Address		Data Sent
 Groundtruth data    01			1 byte (1 or 2)
 Main Lights         02			3 bytes (R G B)
 Frontside Lights    03			1 byte (0, 1, or 2 -> Front, Back, Off)
-Gear Lights         04			2 bytes (Left intensity, Right intensity)
+Gear Lights         04			3 bytes (Mode, Left intensity, Right intensity)
 Shooter Lights      05			1 byte (0, 1, 2 -> Off, Aiming, Aim Lock)
 Intake Lights       06			1 byte (0 or 1 -> Intake ON or OFF)
 
@@ -31,7 +31,7 @@ Data: 1 byte - 0 for default frontside, 1 for reverse lights, and 2 for both lig
 
 Gear Lights
 Address: 04
-Data: 2 bytes, for the intensity level of the LEFT and RIGHT gearholder lights, respectively.
+Data: 3 bytes - First byte is MODE (0 for OFF, 1 for PULSE, 2 for INDIVIDUAL INTENSITY). In PULSE mode, both lights pulse on and off and any other input is ignored. In INDIVIDUAL INTENSITY mode, the next two bytes control the intensity level of the LEFT and RIGHT gearholder lights, respectively.
 
 Shooter Lights
 Address: 05

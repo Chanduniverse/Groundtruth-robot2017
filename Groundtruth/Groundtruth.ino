@@ -140,7 +140,8 @@ void receiveEvent(int num_bytes) {
 
   // Get data (if any) for this register
   char i = 0;
-  while (1 < Wire.available()) { // loop through all but the last
+  while (1 < Wire.available())
+  {
     if(i < 3)
       active_data[i] = Wire.read(); // receive byte as a character
     else
@@ -178,11 +179,13 @@ void receiveEvent(int num_bytes) {
         active_pulsing |= 1 << GEAR;
       else if(active_data[0] == 2) // Intensity mode
       {
+        active_pulsing &= 255 - (1 << GEAR);
         analogWrite(GEAR_LIGHTS_L, active_data[1]);
         analogWrite(GEAR_LIGHTS_R, active_data[2]);
       }
       else // Off
       {
+        active_pulsing &= 255 - (1 << GEAR);
         analogWrite(GEAR_LIGHTS_L, 0);
         analogWrite(GEAR_LIGHTS_R, 0);
       }

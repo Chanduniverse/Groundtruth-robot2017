@@ -2,12 +2,17 @@
 #include <adns2620_dual.h>
 #include <Wire.h>
 
+static inline int8_t sgn(int val) {
+  return (val > 0) - (val < 0); // Thanks, Wouter van Oortmerssen and Lee Salzman
+}
+
 #define GROUNDTRUTH_SENSORS 1
 #define MAIN 2
 #define FRONTSIDE 3
 #define GEAR 4
 #define SHOOTER 5
 #define INTAKE 6
+#define PULSE_SPEED 11
 
 #define GROUNDTRUTH_MOTION 1
 #define GROUNDTRUTH_IMAGE 2
@@ -201,6 +206,9 @@ void receiveEvent(int num_bytes) {
         digitalWrite(INTAKE_LIGHTS, HIGH);
       else // Intake off
         digitalWrite(INTAKE_LIGHTS, LOW);
+      break;
+    case PULSE_SPEED:
+      pwm_direction = sgn(pwm_direction) * active_data[0];
       break;
     default:
       break;

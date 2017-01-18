@@ -12,6 +12,7 @@ Frontside Lights    03			1 byte (0, 1, or 2 -> Front, Back, Off)
 Gear Lights         04			3 bytes (Mode, Left intensity, Right intensity)
 Shooter Lights      05			1 byte (0, 1, 2 -> Off, Aiming, Aim Lock)
 Intake Lights       06			1 byte (0 or 1 -> Intake ON or OFF)
+PULSE speed         11			1 byte (Speed value)
 
 Groundtruth X-Y and IMAGE data
 Address: 01
@@ -41,3 +42,7 @@ Data: 1 byte - 0 for shooter OFF, 1 for AIMING, and 2 for AIM LOCK.
 Intake Lights
 Address: 06
 Data: 1 byte - 0 for intake OFF, 1 for intake ON
+
+PULSE speed
+Address: 11
+Data: 1 byte - A number, 1 - 255, that controls how fast the pulsing happens. Higher is faster. Based on adding the pulse number to the current pulse byte at a 10ms update rate - so a pulse rate of 1 pulses OFF to ON in 2550ms.

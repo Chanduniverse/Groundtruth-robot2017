@@ -35,11 +35,13 @@ struct ADNS2620_Return value;
 
 // Keep track of the active register and any data
 // for the i2c communications
-byte active_register;
-byte active_data[3] = {0,0,0};
+uint8_t active_register;
+uint8_t active_data[3] = {0,0,0};
 /*unsigned byte*/ uint8_t active_pulsing = 0; // Lights that should be pulsing
 /*unsigned byte*/ uint8_t pwm_output = 0;
 byte pwm_direction = 4;
+
+byte return_data_image[324*2];
 
 void setup()
 {
@@ -90,11 +92,9 @@ void loop()
         }
       }
     }
-
     delay(10);    
 }
-    
-    
+
 // function that executes whenever data is requested by master
 void requestEvent() {
   // Requested mouse return data
@@ -119,15 +119,26 @@ void requestEvent() {
         
       // Requested pixel data
       case GROUNDTRUTH_IMAGE:
-        byte return_data_image[324*2];
-        mouse.write(PIXEL_DATA_REG, 0x01);
-        for(int i = 324; i; i--)
+        if(active_data[1] == 0)
         {
-          value = mouse.read(PIXEL_DATA_REG);
-          return_data_image[324   - i] = value.data[0];
-          return_data_image[324*2 - i] = value.data[1];
+          mouse.write(PIXEL_DATA_REG, 0x01);
+          for(int i = 324; i; i--)
+          {
+            value = mouse.read(PIXEL_DATA_REG);
+            return_data_image[324   - i] = i;//value.data[0];
+            return_data_image[324*2 - i] = i;//value.data[1];
+          }
         }
-        Wire.write(return_data_image, 324*2);
+        else if(active_data[1] <= 27)
+        {
+          byte send_data[24];
+          int offset = (active_data[1] - 1) * 24;
+          for(int i = 0; i < 24; i++)
+            send_data[i] = return_data_image[i + offset];
+          Wire.write(send_data, 24);
+        }
+        
+        //Wire.write(return_data_image, 324*2);
         break;
       default:
         break;
@@ -135,20 +146,30 @@ void requestEvent() {
   }
 }
 
-void receiveEvent(int num_bytes) {
-  active_register = Wire.read(); // Get address
-
+void receiveEvent(int howMany) {
+  // Get address
   // Get data (if any) for this register
   char i = 0;
-  while (1 < Wire.available())
+  while (0 < Wire.available())
   {
-    if(i < 3)
-      active_data[i] = Wire.read(); // receive byte as a character
-    else
-      Wire.read(); // Error, eat extra bytes
-    
-    i++;
+    active_register = Wire.read();
+    while (0 < Wire.available())
+    {
+      if(i < 3)
+        active_data[i] = Wire.read(); // receive byte as a character
+      else
+        Wire.read(); // Error, eat extra bytes
+      
+      i++;
+    }
   }
+Serial.print(active_register);
+Serial.print(" ");
+Serial.print(active_data[0]);
+Serial.print(" ");
+Serial.print(active_data[1]);
+Serial.print(" ");
+Serial.println(active_data[2]);
 
   switch(active_register)
   {

@@ -125,8 +125,8 @@ void requestEvent() {
           for(int i = 324; i; i--)
           {
             value = mouse.read(PIXEL_DATA_REG);
-            return_data_image[324   - i] = i;//value.data[0];
-            return_data_image[324*2 - i] = i;//value.data[1];
+            return_data_image[324   - i] = value.data[0];
+            return_data_image[324*2 - i] = value.data[1];
           }
         }
         else if(active_data[1] <= 27)

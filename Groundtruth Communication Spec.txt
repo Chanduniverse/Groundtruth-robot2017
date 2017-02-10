@@ -12,11 +12,12 @@ Frontside Lights    03			1 byte (0, 1, or 2 -> Front, Back, Off)
 Gear Lights         04			3 bytes (Mode, Left intensity, Right intensity)
 Shooter Lights      05			1 byte (0, 1, 2 -> Off, Aiming, Aim Lock)
 Intake Lights       06			1 byte (0 or 1 -> Intake ON or OFF)
+Party Mode          07			1 byte (0 or 1 -> Party Mode ON or OFF)
 PULSE speed         11			1 byte (Speed value)
 
 Groundtruth X-Y and IMAGE data
 Address: 01
-Data: 1 byte - 1 or 2
+Data: 1 or 2 bytes - 1, or 2 + READ OFFSET
 	1:
 		returns 6 bytes: LEFT_X, LEFT_Y, LEFT_SQUAL, RIGHT_X, RIGHT_Y, RIGHT_SQUAL
 	2 + [READ OFFSET]:
@@ -46,6 +47,10 @@ Data: 1 byte - 0 for shooter OFF, 1 for AIMING, and 2 for AIM LOCK.
 Intake Lights
 Address: 06
 Data: 1 byte - 0 for intake OFF, 1 for intake ON
+
+Party mode
+Address: 07
+Data: 1 byte - 0 for Party Mode OFF, 1 for Praty Mode ON. Party Mode overrides the MAIN LIGHTS and causes them to cycles at the PULSE SPEED rate around the color wheel.
 
 PULSE speed
 Address: 11

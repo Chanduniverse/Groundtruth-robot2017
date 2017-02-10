@@ -12,6 +12,7 @@ static inline int8_t sgn(int val) {
 #define GEAR 4
 #define SHOOTER 5
 #define INTAKE 6
+#define PARTY 7
 #define PULSE_SPEED 11
 
 #define GROUNDTRUTH_MOTION 1
@@ -62,7 +63,16 @@ void setup()
     Wire.onReceive(receiveEvent); // register event
     
   //Create a serial output.
-    Serial.begin(9600);
+   // Serial.begin(9600);
+
+    // Blink pin 13 to show that we're ready
+    for(int i = 5; i; i--)
+    {
+      digitalWrite(13, HIGH);
+      delay(100);
+      digitalWrite(13, LOW);
+      delay(100);
+    }
 }
 
 void loop()
@@ -86,6 +96,11 @@ void loop()
           case GEAR:
             analogWrite(GEAR_LIGHTS_L, pwm_output);
             analogWrite(GEAR_LIGHTS_R, pwm_output);
+            break;
+          case PARTY:
+            analogWrite(MAIN_LIGHTS_R, pulse_wave(pwm_output,   0, sgn(pwm_direction)));
+            analogWrite(MAIN_LIGHTS_G, pulse_wave(pwm_output, 170, sgn(pwm_direction)));
+            analogWrite(MAIN_LIGHTS_B, pulse_wave(pwm_output, 340, sgn(pwm_direction)));
             break;
           default:
             break;
@@ -119,17 +134,7 @@ void requestEvent() {
         
       // Requested pixel data
       case GROUNDTRUTH_IMAGE:
-        if(active_data[1] == 0)
-        {
-          mouse.write(PIXEL_DATA_REG, 0x01);
-          for(int i = 324; i; i--)
-          {
-            value = mouse.read(PIXEL_DATA_REG);
-            return_data_image[324   - i] = value.data[0];
-            return_data_image[324*2 - i] = value.data[1];
-          }
-        }
-        else if(active_data[1] <= 27)
+        if(active_data[1] > 0 && active_data[1] <= 27)
         {
           byte send_data[24];
           int offset = (active_data[1] - 1) * 24;
@@ -163,16 +168,28 @@ void receiveEvent(int howMany) {
       i++;
     }
   }
-Serial.print(active_register);
-Serial.print(" ");
-Serial.print(active_data[0]);
-Serial.print(" ");
-Serial.print(active_data[1]);
-Serial.print(" ");
-Serial.println(active_data[2]);
+//Serial.print(active_register);
+//Serial.print(" ");
+//Serial.print(active_data[0]);
+//Serial.print(" ");
+//Serial.print(active_data[1]);
+//Serial.print(" ");
+//Serial.println(active_data[2]);
 
   switch(active_register)
   {
+    case GROUNDTRUTH_SENSORS:
+      if(active_data[0] == GROUNDTRUTH_IMAGE && active_data[1] == 0)
+      {
+        mouse.write(PIXEL_DATA_REG, 0x01);
+        for(int i = 324; i; i--)
+        {
+          value = mouse.read(PIXEL_DATA_REG);
+          return_data_image[324   - i] = value.data[0];
+          return_data_image[324*2 - i] = value.data[1];
+        }
+      }
+      break;
     case MAIN: // Main robot light PWM
       analogWrite(MAIN_LIGHTS_R, active_data[0]);
       analogWrite(MAIN_LIGHTS_G, active_data[1]);
@@ -231,11 +248,46 @@ Serial.println(active_data[2]);
       else // Intake off
         digitalWrite(INTAKE_LIGHTS, LOW);
       break;
+    case PARTY:
+      if(active_data[0] == 1) // Party Mode! Fade lights around RGB color wheel
+        active_pulsing |= 1 << PARTY;
+      else
+        active_pulsing &= 255 - (1 << PARTY);
+      break;
     case PULSE_SPEED:
       pwm_direction = sgn(pwm_direction) * active_data[0];
       break;
     default:
       break;
   }
+}
+
+// Good god, this function.
+/*
+ * PWM swings in a sawtooth wave from 0 to 255, controlled by
+ * the main loop. We want to use that sawtooth waveform to
+ * generate a clipped sawtooth with a third of a period rise,
+ * a third at full on and a third falling. Clocking three of
+ * these 120 degrees out of phase will pulse through the color
+ * wheel once every sawtooth wave period.
+ */
+uint8_t pulse_wave(uint8_t pwm, uint8_t offset, int8_t slope)
+{
+  uint16_t out;
+  // Convert 0-255 and a slope to an X dimension from 0-510
+  uint16_t pwm_long = pwm + (slope < 0 ? 255 - pwm : 0);
+  // Amplify the triangle wave
+  out = (pwm_long + offset) * 3 / 2;
+  // Generate the falling edge if necessary
+  if(out % (255*2) >= 255)
+    out = 255 - out;
+  // Constrain output
+  out = out % 255;
+  // If we're clipping, out will overflow and be lower that pwm
+  if(out < pwm)
+    return 255;
+  //if(out > 255)
+  //  return 255;
+  return (uint8_t) out;
 }
 

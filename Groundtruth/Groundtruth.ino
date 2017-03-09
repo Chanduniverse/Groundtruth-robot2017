@@ -29,7 +29,7 @@ static inline int8_t sgn(int val) {
 #define INTAKE_LIGHTS 4
 
 //Name the ADNS2620, and tell the sketch which pins are used for communication
-ADNS2620_DUAL mouse(0,1,2); //SDA1, SDA2, SCK
+ADNS2620_DUAL mouse(12,13,2); //SDA1, SDA2, SCK
 
 //This value will be used to store information from the mouse registers.
 struct ADNS2620_Return value;
@@ -40,7 +40,8 @@ uint8_t active_register;
 uint8_t active_data[3] = {0,0,0};
 /*unsigned byte*/ uint8_t active_pulsing = 0; // Lights that should be pulsing
 /*unsigned byte*/ uint8_t pwm_output = 0;
-byte pwm_direction = 4;
+uint8_t pwm_step = 4;
+int8_t pwm_direction = 1;
 
 byte return_data_image[324*2];
 
@@ -48,7 +49,10 @@ void setup()
 {
   // Set up all available digital pins to be outputs
   for(int i = 3; i < 14; i++)
+  {
     pinMode(i, OUTPUT);
+    digitalWrite(i, LOW);
+  }
     
   //Initialize the ADNS2620
     mouse.begin();
@@ -77,12 +81,15 @@ void setup()
 
 void loop()
 {
-    if(pwm_output < -pwm_direction && pwm_direction < 0)
+    if(pwm_output < pwm_step && pwm_direction < 0)
       pwm_direction *= -1;
-    if(pwm_output - 255 < pwm_direction && pwm_direction > 0)
+    if(255 - pwm_output < pwm_step && pwm_direction > 0)
       pwm_direction *= -1;
 
-    pwm_output += pwm_direction;
+    if(pwm_direction > 0)
+      pwm_output += pwm_step;
+    else
+      pwm_output -= pwm_step;
 
     for(int i = 7; i; i--)
     {
@@ -98,9 +105,9 @@ void loop()
             analogWrite(GEAR_LIGHTS_R, pwm_output);
             break;
           case PARTY:
-            analogWrite(MAIN_LIGHTS_R, pulse_wave(pwm_output,   0, sgn(pwm_direction)));
-            analogWrite(MAIN_LIGHTS_G, pulse_wave(pwm_output, 170, sgn(pwm_direction)));
-            analogWrite(MAIN_LIGHTS_B, pulse_wave(pwm_output, 340, sgn(pwm_direction)));
+            analogWrite(MAIN_LIGHTS_R, pulse_wave(pwm_output,   0, pwm_direction));
+            analogWrite(MAIN_LIGHTS_G, pulse_wave(pwm_output, 170, pwm_direction));
+            analogWrite(MAIN_LIGHTS_B, pulse_wave(pwm_output, 340, pwm_direction));
             break;
           default:
             break;
@@ -121,14 +128,14 @@ void requestEvent() {
       case GROUNDTRUTH_MOTION:
         byte return_data[6];
         value = mouse.read(DELTA_X_REG);
-        return_data[0] = value.data[0];
-        return_data[3] = value.data[1];
+        return_data[0] = value.data_l;
+        return_data[3] = value.data_r;
         value = mouse.read(DELTA_Y_REG);
-        return_data[1] = value.data[0];
-        return_data[4] = value.data[1];
+        return_data[1] = value.data_l;
+        return_data[4] = value.data_r;
         value = mouse.read(SQUAL_REG);
-        return_data[2] = value.data[0];
-        return_data[5] = value.data[1];
+        return_data[2] = value.data_l;
+        return_data[5] = value.data_r;
         Wire.write(return_data, 6);
         break;
         
@@ -185,8 +192,8 @@ void receiveEvent(int howMany) {
         for(int i = 324; i; i--)
         {
           value = mouse.read(PIXEL_DATA_REG);
-          return_data_image[324   - i] = value.data[0];
-          return_data_image[324*2 - i] = value.data[1];
+          return_data_image[324   - i] = value.data_l;
+          return_data_image[324*2 - i] = value.data_r;
         }
       }
       break;
@@ -255,7 +262,7 @@ void receiveEvent(int howMany) {
         active_pulsing &= 255 - (1 << PARTY);
       break;
     case PULSE_SPEED:
-      pwm_direction = sgn(pwm_direction) * active_data[0];
+      pwm_step = active_data[0];
       break;
     default:
       break;
@@ -271,7 +278,23 @@ void receiveEvent(int howMany) {
  * these 120 degrees out of phase will pulse through the color
  * wheel once every sawtooth wave period.
  */
-uint8_t pulse_wave(uint8_t pwm, uint8_t offset, int8_t slope)
+uint8_t pulse_wave(uint8_t pwm, uint16_t offset, int8_t slope)
+{
+  uint16_t out, pwm_long;
+  // Convert 0-255 and a slope to an X dimension from 0-510
+  pwm_long = (uint16_t)offset + (uint16_t)(slope < 0 ? 510 - pwm : pwm);
+  // Compensate for any offset angle
+  pwm_long = pwm_long % 510;
+  // Convert X dimension to triangle wave position
+  pwm_long = (pwm_long > 255 ? 510 - pwm_long : pwm_long);
+  // Clip the triangle wave
+  out = (pwm_long * 3 / 2) % 255;
+  // If we're clipping, out will overflow and be lower that pwm
+  if(out < pwm_long)
+    return 255;
+  return (uint8_t) out;
+} 
+/*uint8_t pulse_wave(uint8_t pwm, uint8_t offset, int8_t slope)
 {
   uint16_t out;
   // Convert 0-255 and a slope to an X dimension from 0-510
@@ -289,5 +312,5 @@ uint8_t pulse_wave(uint8_t pwm, uint8_t offset, int8_t slope)
   //if(out > 255)
   //  return 255;
   return (uint8_t) out;
-}
+}*/
 
